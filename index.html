@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>My Day — Планер</title>
+
+  <!-- PWA: манифест -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- PWA: тема -->
+  <meta name="theme-color" content="#4a90e2">
+
+  <!-- iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="My Day">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="icons/icon-192x192.png">
+</head>
+
+  <title>My Day — Планер</title>
+
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=ADLaM+Display&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'ADLaM Display', cursive;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: #FF00DD;
+  }
+
+  /* ===== BRIGHT STRIPED BACKGROUND ===== */
+  .bg-stripes {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 0;
+    background: repeating-linear-gradient(
+      180deg,
+      #FF00DD 0px, #FF00DD 20px,
+      #00FFE1 20px, #00FFE1 40px
+    );
+    background-size: 100% 80px;
+    animation: stripeScroll 4s linear infinite;
+  }
+  @keyframes stripeScroll {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 80px; }
+  }
+
+  .app-container {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .screen { display: none; animation: fadeIn 0.4s ease; }
+  .screen.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: 10px 0 25px; gap: 10px;
+  }
+  .header-left { flex: 1; text-align: center; padding-right: 80px; }
+  .header-subtitle {
+    font-family: 'ADLaM Display', cursive;
+    color: #fff; font-size: 18px;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(0,0,0,0.2);
+    margin-bottom: 5px; letter-spacing: 0.5px;
+  }
+  .header-title {
+    font-family: 'ADLaM Display', cursive;
+    font-size: 82px; color: #FFD700;
+    text-shadow:
+      0 0 20px rgba(255,215,0,1),
+      0 0 40px rgba(255,200,0,0.8),
+      0 0 60px rgba(255,180,0,0.5),
+      0 0 80px rgba(255,160,0,0.3),
+      0 5px 10px rgba(200,140,0,0.4),
+      0 8px 16px rgba(180,120,0,0.3),
+      2px 2px 0 rgba(255,255,255,0.4),
+      -1px -1px 0 rgba(255,255,255,0.3);
+    display: inline-flex; align-items: center; gap: 8px; line-height: 1;
+    animation: logoGlow 2.5s ease-in-out infinite;
+  }
+  @keyframes logoGlow {
+    0%, 100% {
+      text-shadow:
+        0 0 20px rgba(255,215,0,1), 0 0 40px rgba(255,200,0,0.8),
+        0 0 60px rgba(255,180,0,0.5), 0 0 80px rgba(255,160,0,0.3),
+        0 5px 10px rgba(200,140,0,0.4), 0 8px 16px rgba(180,120,0,0.3),
+        2px 2px 0 rgba(255,255,255,0.4), -1px -1px 0 rgba(255,255,255,0.3);
+    }
+    50% {
+      text-shadow:
+        0 0 30px rgba(255,215,0,1), 0 0 60px rgba(255,200,0,1),
+        0 0 90px rgba(255,180,0,0.7), 0 0 120px rgba(255,160,0,0.4),
+        0 5px 10px rgba(200,140,0,0.4), 0 8px 16px rgba(180,120,0,0.3),
+        2px 2px 0 rgba(255,255,255,0.4), -1px -1px 0 rgba(255,255,255,0.3);
+    }
+  }
+
+  .stars { display: inline-flex; align-items: flex-end; gap: 3px; margin-left: 5px; vertical-align: middle; }
+  .star { display: inline-block; filter: drop-shadow(0 0 10px rgba(255,255,100,1)); }
+  .star-small { width: 40px; height: 40px; }
+  .star-large { width: 62px; height: 62px; margin-bottom: -10px; }
+  .star svg { width: 100%; height: 100%; }
+
+  /* ===== PROFILE BUTTON ===== */
+  .header-profile-btn {
+    flex-shrink: 0;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.55) 0%,
+      rgba(220,180,255,0.45) 50%,
+      rgba(200,150,240,0.55) 100%);
+    border: 2px solid rgba(255,255,255,0.7);
+    border-radius: 16px;
+    padding: 10px 12px 8px;
+    cursor: pointer; text-align: center;
+    box-shadow:
+      0 4px 20px rgba(150,80,200,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.7),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s, box-shadow 0.2s;
+    min-width: 75px;
+  }
+  .header-profile-btn:hover {
+    transform: scale(1.06);
+    box-shadow:
+      0 6px 25px rgba(150,80,200,0.35),
+      inset 0 1px 0 rgba(255,255,255,0.8),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+  }
+  .header-profile-btn .profile-circle {
+    width: 46px; height: 46px; border-radius: 50%;
+    margin: 0 auto 5px;
+    border: 2.5px solid rgba(255,255,255,0.9);
+    background: linear-gradient(135deg, #D090F0, #B070E0);
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    box-shadow:
+      inset 0 2px 4px rgba(255,255,255,0.5),
+      0 2px 8px rgba(150,80,200,0.3);
+  }
+  .header-profile-btn .profile-circle img { width: 100%; height: 100%; object-fit: cover; }
+  .header-profile-btn span { color: #fff; font-size: 12px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+  /* ===== PANELS ===== */
+  .menu-container {
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.5) 0%,
+      rgba(200,230,255,0.35) 40%,
+      rgba(180,210,255,0.4) 100%);
+    border-radius: 30px;
+    padding: 30px 20px;
+    border: 2px solid rgba(255,255,255,0.6);
+    box-shadow:
+      0 8px 40px rgba(0,0,0,0.12),
+      inset 0 1px 0 rgba(255,255,255,0.7),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .menu-container::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 45%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, transparent 100%);
+    border-radius: 30px 30px 0 0; pointer-events: none;
+  }
+  .menu-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+    padding: 10px; position: relative; z-index: 1;
+  }
+  .note-card {
+    position: relative; cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 140px;
+  }
+  .note-card:hover { transform: scale(1.06) rotate(-1deg); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+
+  .note-crumpled {
+    background: linear-gradient(180deg,
+      rgba(255,245,220,0.85) 0%,
+      rgba(255,220,160,0.8) 50%,
+      rgba(245,200,130,0.85) 100%);
+    width: 150px; height: 140px;
+    clip-path: polygon(5% 0%, 95% 2%, 100% 10%, 98% 50%, 100% 90%, 95% 100%, 50% 98%, 0% 100%, 2% 50%, 0% 10%);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 3px 3px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+    transform: rotate(-2deg);
+    border: 1.5px solid rgba(255,255,255,0.5);
+  }
+  .note-crumpled .note-text,
+  .note-timer .note-text,
+  .note-profile .note-text {
+    font-family: 'ADLaM Display', cursive; font-size: 22px; color: #E03080;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 2px 4px rgba(0,0,0,0.15);
+  }
+
+  .note-timer {
+    background: linear-gradient(180deg,
+      rgba(255,240,100,0.85) 0%,
+      rgba(255,210,50,0.8) 50%,
+      rgba(245,195,30,0.85) 100%);
+    width: 140px; height: 140px; border-radius: 4px;
+    box-shadow: 3px 3px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+    display: flex; flex-direction: column; align-items: center;
+    padding: 22px 12px 12px; position: relative;
+    transform: rotate(1deg);
+    border: 1.5px solid rgba(255,255,255,0.5);
+  }
+  .note-timer .pin {
+    position: absolute; top: -7px; width: 22px; height: 22px;
+    background: radial-gradient(circle at 40% 40%, #ff3030, #cc0000);
+    border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+  }
+  .note-timer .lines { width: 100%; margin-bottom: auto; }
+  .note-timer .lines div { height: 2px; background: rgba(180,140,20,0.7); margin: 7px 0; border-radius: 1px; }
+
+  .note-settings {
+    background: linear-gradient(180deg,
+      rgba(240,160,230,0.85) 0%,
+      rgba(225,130,215,0.8) 50%,
+      rgba(215,110,205,0.85) 100%);
+    width: 140px; height: 130px; border-radius: 4px;
+    box-shadow: 3px 3px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+    display: flex; align-items: center; justify-content: center;
+    position: relative; transform: rotate(-1deg);
+    border: 1.5px solid rgba(255,255,255,0.5);
+  }
+  .note-settings .pin-left,
+  .note-settings .pin-right {
+    position: absolute; top: 8px; width: 14px; height: 14px;
+    background: radial-gradient(circle at 40% 40%, #e0e0e0, #909090);
+    border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  }
+  .note-settings .pin-left { left: 12px; }
+  .note-settings .pin-right { right: 12px; }
+  .note-settings .note-text { font-family: 'ADLaM Display', cursive; font-size: 22px; color: #fff; text-shadow: 0 1px 0 rgba(255,255,255,0.5), 0 2px 4px rgba(0,0,0,0.2); }
+
+  .note-profile {
+    background: linear-gradient(180deg,
+      rgba(130,245,245,0.85) 0%,
+      rgba(100,235,235,0.8) 50%,
+      rgba(80,225,225,0.85) 100%);
+    width: 150px; height: 140px; border-radius: 4px;
+    box-shadow: 3px 3px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.7);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative; padding: 18px 10px 10px;
+    transform: rotate(1deg);
+    border: 1.5px solid rgba(255,255,255,0.5);
+  }
+  .note-profile .tape-left,
+  .note-profile .tape-right {
+    position: absolute; top: -5px; width: 28px; height: 13px;
+    background: linear-gradient(180deg, #3060FF, #1030DD);
+    border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .note-profile .tape-left { left: 10px; transform: rotate(-30deg); }
+  .note-profile .tape-right { right: 10px; transform: rotate(30deg); }
+  .note-profile .profile-img {
+    width: 55px; height: 55px; border-radius: 50%; overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.9);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.6);
+    margin-bottom: 6px;
+  }
+  .note-profile .profile-img img { width: 100%; height: 100%; object-fit: cover; }
+
+  .bottom-btn {
+    display: block; margin: 10px auto 20px; padding: 16px 50px;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.75) 0%,
+      rgba(255,240,200,0.7) 50%,
+      rgba(255,225,170,0.75) 100%);
+    border: 2px solid rgba(255,255,255,0.8);
+    border-radius: 40px;
+    font-family: 'ADLaM Display', cursive; font-size: 22px; color: #E03080;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    box-shadow:
+      0 4px 20px rgba(200,50,120,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.9),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .bottom-btn::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, transparent 100%);
+    border-radius: 40px 40px 0 0; pointer-events: none;
+  }
+  .bottom-btn:hover {
+    transform: scale(1.06);
+    box-shadow:
+      0 6px 25px rgba(200,50,120,0.3),
+      inset 0 1px 0 rgba(255,255,255,1),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+  }
+
+  /* ===== INSTALL PWA BUTTON ===== */
+  .install-btn {
+    display: none;
+    position: fixed;
+    bottom: 20px; right: 20px;
+    z-index: 90;
+    padding: 14px 24px;
+    background: linear-gradient(180deg,
+      rgba(120,90,255,0.9) 0%,
+      rgba(90,60,220,0.9) 100%);
+    border: 2px solid rgba(255,255,255,0.7);
+    border-radius: 30px;
+    color: #fff;
+    font-family: 'ADLaM Display', cursive;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 6px 25px rgba(90,60,220,0.4);
+    transition: transform 0.2s;
+  }
+  .install-btn:hover { transform: scale(1.06); }
+
+  /* ===== PLAN SCREEN ===== */
+  .plan-container {
+    background: linear-gradient(180deg,
+      rgba(220,140,255,0.55) 0%,
+      rgba(190,100,230,0.5) 50%,
+      rgba(170,80,220,0.55) 100%);
+    border-radius: 30px;
+    padding: 30px 20px 35px;
+    border: 2px solid rgba(255,255,255,0.5);
+    box-shadow:
+      0 8px 40px rgba(120,40,180,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    margin-bottom: 20px;
+    position: relative; overflow: hidden;
+  }
+  .plan-container::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 45%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 100%);
+    border-radius: 30px 30px 0 0; pointer-events: none;
+  }
+  .plan-title {
+    font-family: 'ADLaM Display', cursive; font-size: 44px; color: #F060FF;
+    text-align: center;
+    text-shadow:
+      0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(0,0,0,0.15),
+      2px 2px 0 rgba(255,255,255,0.4), 0 0 20px rgba(240,96,255,0.4);
+    margin-bottom: 28px; position: relative; z-index: 1;
+  }
+  .plan-btn {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 28px; border-radius: 50px; margin-bottom: 20px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 2px solid rgba(255,255,255,0.7);
+    box-shadow:
+      0 4px 20px rgba(0,0,0,0.15),
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+    text-decoration: none; position: relative; overflow: hidden; z-index: 1;
+  }
+  .plan-btn::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+    border-radius: 50px 50px 0 0; pointer-events: none;
+  }
+  .plan-btn:hover {
+    transform: scale(1.03);
+    box-shadow:
+      0 6px 25px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,0.7),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+  }
+  .plan-btn-1 { background: linear-gradient(180deg, rgba(255,80,200,0.85) 0%, rgba(230,40,180,0.8) 50%, rgba(210,20,160,0.85) 100%); }
+  .plan-btn-2 { background: linear-gradient(180deg, rgba(255,140,210,0.85) 0%, rgba(240,100,190,0.8) 50%, rgba(225,70,175,0.85) 100%); }
+  .plan-btn-3 { background: linear-gradient(180deg, rgba(255,200,230,0.85) 0%, rgba(245,170,215,0.8) 50%, rgba(235,145,200,0.85) 100%); }
+  .plan-btn-text {
+    font-family: 'ADLaM Display', cursive; font-size: 21px; font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.6), 0 2px 6px rgba(0,0,0,0.2);
+    position: relative; z-index: 1;
+  }
+  .plan-btn-right { display: flex; align-items: center; gap: 12px; position: relative; z-index: 1; }
+  .plan-btn-arrow { display: flex; align-items: center; }
+  .plan-btn-arrow svg { width: 28px; height: 18px; }
+  .plan-btn-circle {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 2.5px solid rgba(255,255,255,0.8);
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.15),
+      0 1px 3px rgba(0,0,0,0.15),
+      inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .circle-1 { background: linear-gradient(180deg, rgba(255,200,255,0.9) 0%, rgba(240,160,240,0.9) 100%); }
+  .circle-2 { background: linear-gradient(180deg, rgba(255,140,190,0.9) 0%, rgba(235,100,170,0.9) 100%); }
+  .circle-3 { background: linear-gradient(180deg, rgba(255,220,235,0.9) 0%, rgba(245,195,220,0.9) 100%); }
+
+  .save-btn {
+    display: block; margin: 10px auto 20px; padding: 18px 80px;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.75) 0%,
+      rgba(255,245,210,0.7) 50%,
+      rgba(255,230,180,0.75) 100%);
+    border: 2px solid rgba(255,255,255,0.8); border-radius: 40px;
+    font-family: 'ADLaM Display', cursive; font-size: 28px; font-weight: 700;
+    color: #505050;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.9), 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    box-shadow:
+      0 4px 20px rgba(0,0,0,0.15),
+      inset 0 1px 0 rgba(255,255,255,0.9),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .save-btn::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.6) 0%, transparent 100%);
+    border-radius: 40px 40px 0 0; pointer-events: none;
+  }
+  .save-btn:hover {
+    transform: scale(1.06);
+    box-shadow:
+      0 6px 25px rgba(0,0,0,0.2),
+      inset 0 1px 0 rgba(255,255,255,1),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+  }
+
+  .back-btn {
+    position: fixed; top: 15px; left: 15px; z-index: 100;
+    background: rgba(255,255,255,0.4);
+    border: 2px solid rgba(255,255,255,0.7); border-radius: 50%;
+    width: 44px; height: 44px;
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 22px; color: #fff;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition: transform 0.2s, background 0.2s;
+  }
+  .back-btn:hover { transform: scale(1.1); background: rgba(255,255,255,0.55); }
+  .back-btn.visible { display: flex; }
+
+  /* ===== MODALS ===== */
+  .modal-overlay {
+    display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45); z-index: 200;
+    align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.55) 0%,
+      rgba(235,210,255,0.5) 50%,
+      rgba(220,190,245,0.55) 100%);
+    border-radius: 24px; padding: 30px;
+    max-width: 380px; width: 100%;
+    box-shadow:
+      0 10px 50px rgba(100,40,160,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.7),
+      inset 0 -1px 0 rgba(0,0,0,0.08);
+    text-align: center;
+    max-height: 85vh; overflow-y: auto;
+    border: 2px solid rgba(255,255,255,0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: relative;
+  }
+  .modal::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 45%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.4) 0%, transparent 100%);
+    border-radius: 24px 24px 0 0; pointer-events: none;
+  }
+  .modal h3 {
+    font-family: 'ADLaM Display', cursive; color: #B030E0; font-size: 28px;
+    margin-bottom: 15px;
+    text-shadow:
+      0 1px 0 rgba(255,255,255,0.6),
+      0 2px 6px rgba(0,0,0,0.15),
+      0 0 15px rgba(176,48,224,0.3);
+    position: relative; z-index: 1;
+  }
+  .modal p { color: #503070; font-size: 16px; margin-bottom: 20px; position: relative; z-index: 1; }
+
+  .modal-close {
+    padding: 10px 30px;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.6) 0%,
+      rgba(230,140,250,0.6) 50%,
+      rgba(200,100,230,0.7) 100%);
+    border: 2px solid rgba(255,255,255,0.7); border-radius: 25px;
+    color: #fff;
+    font-family: 'ADLaM Display', cursive; font-size: 16px; font-weight: 700;
+    cursor: pointer;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 15px rgba(160,60,200,0.3), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition: transform 0.2s;
+    position: relative; overflow: hidden; z-index: 1;
+  }
+  .modal-close::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+    border-radius: 25px 25px 0 0; pointer-events: none;
+  }
+  .modal-close:hover { transform: scale(1.06); }
+
+  .profile-photo-wrapper {
+    position: relative; width: 100px; height: 100px;
+    margin: 10px auto 15px; cursor: pointer; z-index: 1;
+  }
+  .profile-photo-wrapper .photo-circle {
+    width: 100px; height: 100px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.8); overflow: hidden;
+    background: linear-gradient(135deg, #D090F0, #B070E0);
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 15px rgba(150,80,200,0.3), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .profile-photo-wrapper .photo-circle img { width: 100%; height: 100%; object-fit: cover; }
+  .profile-photo-wrapper .photo-circle .placeholder-icon { font-size: 36px; color: #fff; }
+  .profile-photo-wrapper .upload-badge {
+    position: absolute; bottom: 0; right: 0;
+    width: 30px; height: 30px;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.6) 0%,
+      rgba(170,80,220,0.7) 100%);
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.8);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .profile-photo-wrapper input[type="file"] { display: none; }
+
+  .timer-display {
+    font-family: 'ADLaM Display', cursive; font-size: 52px; color: #B030E0;
+    margin: 15px 0;
+    text-shadow:
+      0 1px 0 rgba(255,255,255,0.6),
+      0 2px 6px rgba(0,0,0,0.15),
+      0 0 20px rgba(176,48,224,0.3);
+    position: relative; z-index: 1;
+  }
+  .timer-controls { display: flex; gap: 10px; justify-content: center; margin-top: 15px; position: relative; z-index: 1; }
+  .timer-btn {
+    padding: 10px 25px;
+    border: 2px solid rgba(255,255,255,0.7); border-radius: 25px;
+    font-family: 'ADLaM Display', cursive; font-size: 16px; font-weight: 700;
+    cursor: pointer;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.6);
+    transition: transform 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .timer-btn::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.5) 0%, transparent 100%);
+    border-radius: 25px 25px 0 0; pointer-events: none;
+  }
+  .timer-btn:hover { transform: scale(1.06); }
+  .timer-start { background: linear-gradient(180deg, rgba(80,230,80,0.85) 0%, rgba(50,200,50,0.8) 100%); color: #fff; }
+  .timer-stop  { background: linear-gradient(180deg, rgba(255,80,80,0.85) 0%, rgba(220,50,50,0.8) 100%); color: #fff; }
+  .timer-reset { background: linear-gradient(180deg, rgba(80,170,255,0.85) 0%, rgba(50,140,230,0.8) 100%); color: #fff; }
+
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(160,100,200,0.2);
+    position: relative; z-index: 1;
+  }
+  .setting-row label { color: #503070; font-size: 16px; font-weight: 700; }
+
+  .toggle-switch {
+    width: 50px; height: 28px;
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.5) 0%,
+      rgba(200,170,220,0.6) 100%);
+    border-radius: 14px; position: relative; cursor: pointer;
+    transition: background 0.3s;
+    border: 1.5px solid rgba(255,255,255,0.6);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .toggle-switch.active {
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.5) 0%,
+      rgba(170,80,220,0.7) 100%);
+  }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px;
+    background: linear-gradient(180deg, #fff 0%, #f0f0f0 100%);
+    border-radius: 50%; transition: transform 0.3s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+  }
+  .toggle-switch.active::after { transform: translateX(22px); }
+
+  .event-item {
+    background: linear-gradient(180deg,
+      rgba(255,255,255,0.55) 0%,
+      rgba(255,255,255,0.4) 100%);
+    border-radius: 12px; padding: 12px 16px; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1.5px solid rgba(255,255,255,0.6);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.6);
+    position: relative; z-index: 1;
+  }
+  .event-item .event-date { font-size: 13px; color: #8060a0; }
+  .event-item .event-name { font-weight: 700; color: #503070; font-size: 15px; }
+  .event-item .event-delete {
+    background: linear-gradient(180deg,
+      rgba(255,100,100,0.85) 0%,
+      rgba(230,60,60,0.8) 100%);
+    border: 1.5px solid rgba(255,255,255,0.7);
+    color: #fff; border-radius: 50%; width: 28px; height: 28px;
+    cursor: pointer; font-size: 14px;
+    box-shadow: 0 2px 8px rgba(200,50,50,0.3);
+    transition: transform 0.2s;
+  }
+  .event-item .event-delete:hover { transform: scale(1.1); }
+
+  .form-group { margin-bottom: 15px; text-align: left; position: relative; z-index: 1; }
+  .form-group label { display: block; color: #503070; font-weight: 700; margin-bottom: 6px; font-size: 14px; }
+  .form-group input {
+    width: 100%; padding: 10px 14px;
+    border: 2px solid rgba(190,150,220,0.6); border-radius: 12px;
+    font-family: 'ADLaM Display', cursive; font-size: 16px;
+    background: rgba(255,255,255,0.6); color: #302050;
+    outline: none; transition: border-color 0.3s;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .form-group input:focus { border-color: rgba(170,80,220,0.8); background: rgba(255,255,255,0.75); }
+
+  @media (max-width: 400px) {
+    .header-title { font-size: 62px; }
+    .header-left { padding-right: 70px; }
+    .menu-grid { gap: 12px; }
+    .note-crumpled, .note-timer, .note-settings, .note-profile { width: 120px; min-height: 110px; }
+    .plan-title { font-size: 36px; }
+    .plan-btn { padding: 16px 20px; }
+    .plan-btn-text { font-size: 18px; }
+  }
+  </style>
+
+  <!-- app.js подключаем с defer, чтобы DOM уже был готов -->
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+<div class="bg-stripes"></div>
+
+<button class="back-btn" id="backBtn" onclick="showScreen('main')">&#8592;</button>
+
+<!-- Кнопка установки PWA (появляется автоматически) -->
+<button class="install-btn" id="installBtn" type="button">&#8681; Установить</button>
+
+<div class="app-container">
+
+  <!-- SCREEN 1: Main Menu -->
+  <div class="screen active" id="screen-main">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-subtitle">Your day is in your hands!</div>
+        <div class="header-title">
+          My Day
+          <span class="stars">
+            <span class="star star-small">
+              <svg viewBox="0 0 50 50"><polygon points="25,2 31,18 49,18 35,29 40,47 25,37 10,47 15,29 1,18 19,18" fill="#FFD700" stroke="#D4A017" stroke-width="1"/></svg>
+            </span>
+            <span class="star star-large">
+              <svg viewBox="0 0 50 50"><polygon points="25,2 31,18 49,18 35,29 40,47 25,37 10,47 15,29 1,18 19,18" fill="#FFF44F" stroke="#E0C020" stroke-width="1"/></svg>
+            </span>
+          </span>
+        </div>
+      </div>
+      <div class="header-profile-btn" onclick="openModal('profileModal')">
+        <div class="profile-circle" id="headerAvatar1"></div>
+        <span>Profile</span>
+      </div>
+    </div>
+
+    <div class="menu-container">
+      <div class="menu-grid">
+        <div class="note-card" onclick="showScreen('plan')">
+          <div class="note-crumpled"><span class="note-text">To plan</span></div>
+        </div>
+        <div class="note-card" onclick="openModal('timerModal')">
+          <div class="note-timer">
+            <div class="pin"></div>
+            <div class="lines"><div></div><div></div><div></div></div>
+            <span class="note-text">Timer</span>
+          </div>
+        </div>
+        <div class="note-card" onclick="openModal('settingsModal')">
+          <div class="note-settings">
+            <div class="pin-left"></div>
+            <div class="pin-right"></div>
+            <span class="note-text">Settings</span>
+          </div>
+        </div>
+        <div class="note-card" onclick="openModal('profileModal')">
+          <div class="note-profile">
+            <div class="tape-left"></div>
+            <div class="tape-right"></div>
+            <div class="profile-img" id="menuAvatar"></div>
+            <span class="note-text">Profile</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="bottom-btn" onclick="openModal('detailedModal')">More detailed...</button>
+  </div>
+
+  <!-- SCREEN 2: Create a plan -->
+  <div class="screen" id="screen-plan">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-subtitle">Your day is in your hands!</div>
+        <div class="header-title">
+          My Day
+          <span class="stars">
+            <span class="star star-small">
+              <svg viewBox="0 0 50 50"><polygon points="25,2 31,18 49,18 35,29 40,47 25,37 10,47 15,29 1,18 19,18" fill="#FFD700" stroke="#D4A017" stroke-width="1"/></svg>
+            </span>
+            <span class="star star-large">
+              <svg viewBox="0 0 50 50"><polygon points="25,2 31,18 49,18 35,29 40,47 25,37 10,47 15,29 1,18 19,18" fill="#FFF44F" stroke="#E0C020" stroke-width="1"/></svg>
+            </span>
+          </span>
+        </div>
+      </div>
+      <div class="header-profile-btn" onclick="openModal('profileModal')">
+        <div class="profile-circle" id="headerAvatar2"></div>
+        <span>Profile</span>
+      </div>
+    </div>
+
+    <div class="plan-container">
+      <div class="plan-title">Create a plan</div>
+
+      <div class="plan-btn plan-btn-1" onclick="openModal('dateModal')">
+        <span class="plan-btn-text">Select a date</span>
+        <div class="plan-btn-right">
+          <div class="plan-btn-arrow">
+            <svg viewBox="0 0 40 20"><line x1="0" y1="10" x2="28" y2="10" stroke="white" stroke-width="2.5" stroke-linecap="round"/><polyline points="22,4 30,10 22,16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="plan-btn-circle circle-1"></div>
+        </div>
+      </div>
+
+      <div class="plan-btn plan-btn-2" onclick="openModal('eventModal')">
+        <span class="plan-btn-text">Record the event</span>
+        <div class="plan-btn-right">
+          <div class="plan-btn-arrow">
+            <svg viewBox="0 0 40 20"><line x1="0" y1="10" x2="28" y2="10" stroke="white" stroke-width="2.5" stroke-linecap="round"/><polyline points="22,4 30,10 22,16" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="plan-btn-circle circle-2"></div>
+        </div>
+      </div>
+
+      <div class="plan-btn plan-btn-3" onclick="openModal('eventsModal')">
+        <span class="plan-btn-text">View all events</span>
+        <div class="plan-btn-right">
+          <div class="plan-btn-arrow">
+            <svg viewBox="0 0 40 20"><line x1="0" y1="10" x2="28" y2="10" stroke="#C07090" stroke-width="2.5" stroke-linecap="round"/><polyline points="22,4 30,10 22,16" fill="none" stroke="#C07090" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="plan-btn-circle circle-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="save-btn" onclick="savePlan()">Save</button>
+  </div>
+
+</div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="timerModal">
+  <div class="modal">
+    <h3>Timer</h3>
+    <div class="timer-display" id="timerDisplay">00:00</div>
+    <div class="timer-controls">
+      <button class="timer-btn timer-start" onclick="startTimer()">Start</button>
+      <button class="timer-btn timer-stop" onclick="stopTimer()">Stop</button>
+      <button class="timer-btn timer-reset" onclick="resetTimer()">Reset</button>
+    </div>
+    <br>
+    <button class="modal-close" onclick="closeModal('timerModal')">Close</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h3>Settings</h3>
+    <div class="setting-row">
+      <label>Notifications</label>
+      <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+    </div>
+    <div class="setting-row">
+      <label>Sound</label>
+      <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+    </div>
+    <div class="setting-row">
+      <label>Dark mode</label>
+      <div class="toggle-switch" onclick="this.classList.toggle('active')"></div>
+    </div>
+    <div class="setting-row">
+      <label>Auto-save</label>
+      <div class="toggle-switch active" onclick="this.classList.toggle('active')"></div>
+    </div>
+    <br>
+    <button class="modal-close" onclick="closeModal('settingsModal')">Close</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="profileModal">
+  <div class="modal">
+    <h3>Profile</h3>
+
+    <div class="profile-photo-wrapper" onclick="document.getElementById('photoInput').click()">
+      <div class="photo-circle" id="modalAvatar">
+        <span class="placeholder-icon">&#128247;</span>
+      </div>
+      <div class="upload-badge">&#9998;</div>
+      <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoUpload(event)">
+    </div>
+    <p style="font-size:13px;color:#8060a0;margin-bottom:15px;">Нажмите на фото, чтобы загрузить</p>
+
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" id="profileName" placeholder="Your name" value="User">
+    </div>
+    <br>
+    <button class="modal-close" onclick="saveProfile()">Save &amp; Close</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="dateModal">
+  <div class="modal">
+    <h3>Select a date</h3>
+    <div class="form-group">
+      <label>Choose date</label>
+      <input type="date" id="selectedDate">
+    </div>
+    <br>
+    <button class="modal-close" onclick="closeModal('dateModal')">Confirm</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="eventModal">
+  <div class="modal">
+    <h3>Record the event</h3>
+    <div class="form-group">
+      <label>Event name</label>
+      <input type="text" id="eventName" placeholder="What's the event?">
+    </div>
+    <div class="form-group">
+      <label>Date</label>
+      <input type="date" id="eventDate">
+    </div>
+    <div class="form-group">
+      <label>Time</label>
+      <input type="time" id="eventTime">
+    </div>
+    <br>
+    <button class="modal-close" onclick="addEvent()">Add Event</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="eventsModal">
+  <div class="modal">
+    <h3>All Events</h3>
+    <div id="eventsList">
+      <p style="color:#8060a0;font-style:italic;">No events yet. Add your first event!</p>
+    </div>
+    <br>
+    <button class="modal-close" onclick="closeModal('eventsModal')">Close</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="detailedModal">
+  <div class="modal">
+    <h3>My Day Planner</h3>
+    <p>Organize your day with style! Plan events, set timers, and keep track of everything important.</p>
+    <p style="font-size:14px;">Features:<br>Date planning<br>Built-in timer<br>Event recording<br>Personal profile</p>
+    <br>
+    <button class="modal-close" onclick="closeModal('detailedModal')">Got it!</button>
+  </div>
+</div>
+
+</body>
+</html>
